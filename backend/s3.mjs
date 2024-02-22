@@ -5,7 +5,6 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { v4 as uuid } from "uuid";
 
 const s3 = new S3Client(
   {
@@ -17,8 +16,8 @@ const s3 = new S3Client(
 );
 const BUCKET = process.env.BUCKET;
 
-export const uploadToS3 = async ({ file, userId }) => {
-  const key = `${userId}/${uuid()}`;
+export const uploadToS3 = async ({ file, fileName }) => {
+  const key = `${fileName}`;
   const command = new PutObjectCommand({
     Bucket: BUCKET,
     Key: key,
@@ -35,10 +34,9 @@ export const uploadToS3 = async ({ file, userId }) => {
   }
 };
 
-const getImageKeysByUser = async (userId) => {
+const getImageKeysByUser = async () => {
   const command = new ListObjectsV2Command({
-    Bucket: BUCKET,
-    Prefix: userId,
+    Bucket: BUCKET
   });
 
   const { Contents = [] } = await s3.send(command);
@@ -48,14 +46,15 @@ const getImageKeysByUser = async (userId) => {
   ).map((image) => image.Key);
 };
 
-export const getUserPresignedUrls = async (userId) => {
+export const getUserPresignedUrls = async () => {
   try {
-    const imageKeys = await getImageKeysByUser(userId);
+    const imageKeys = await getImageKeysByUser();
 
     const presignedUrls = await Promise.all(
-      imageKeys.map((key) => {
+      imageKeys.map(async (key) => {
         const command = new GetObjectCommand({ Bucket: BUCKET, Key: key });
-        return getSignedUrl(s3, command, { expiresIn: 900 }); // default
+        const url = await getSignedUrl(s3, command, { expiresIn: 900 }); // default
+        return { fileName: key, presignedUrl: url };
       })
     );
     return { presignedUrls };

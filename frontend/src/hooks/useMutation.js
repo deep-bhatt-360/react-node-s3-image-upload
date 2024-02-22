@@ -18,7 +18,7 @@ const useMutation = ({ url, method = 'POST' }) => {
       .then(() => {
         setState({ isLoading: false, error: '' });
         toast({
-          title: 'Successfully Added Image',
+          title: 'Successfully Added File',
           status: 'success',
           duration: 2000,
           position: 'top',

@@ -1,18 +1,9 @@
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Image,
-  Input,
-  SimpleGrid,
-  Text,
-} from '@chakra-ui/react';
-import { useState } from 'react';
+import { Box, Button, CircularProgress, Flex, Link, SimpleGrid, Text, VStack } from '@chakra-ui/react';
+import { useState, useRef } from 'react';
 import useMutation from '../hooks/useMutation';
 import useQuery from '../hooks/useQuery';
 
-const validFileTypes = ['image/jpg', 'image/jpeg', 'image/png'];
-const URL = '/images';
+const URL = '/files';
 
 const ErrorText = ({ children, ...props }) => (
   <Text fontSize="lg" color="red.300" {...props}>
@@ -29,75 +20,102 @@ const Posts = () => {
   } = useMutation({ url: URL });
 
   const {
-    data: imageUrls = [],
-    isLoading: imagesLoading,
+    data: files = [],
+    isLoading: filesLoading,
     error: fetchError,
   } = useQuery(URL, refetch);
 
   const [error, setError] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null); // Store the selected file object
+  const fileInputRef = useRef(null);
 
-  const handleUpload = async e => {
+  const handleBrowse = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleChangeFile = e => {
     const file = e.target.files[0];
+    if (file) {
+      // Disallow only 'exe' files
+      if (file.type === 'application/x-msdownload' || file.name.endsWith('.exe')) {
+        setError('EXE files are not allowed');
+        setSelectedFile(null); // Reset file selection
+        return;
+      }
+      setError('');
+      setSelectedFile(file); // Store the file object
+    }
+  };
 
-    if (!validFileTypes.find(type => type === file.type)) {
-      setError('File must be in JPG/PNG format');
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setError('No file selected for upload');
       return;
     }
 
     const form = new FormData();
-    form.append('image', file);
+    form.append('file', selectedFile);
 
     await uploadImage(form);
+    setSelectedFile(null); // Reset file selection after upload
     setTimeout(() => {
       setRefetch(s => s + 1);
     }, 1000);
   };
 
   return (
-    <Box mt={6}>
-      <Input id="imageInput" type="file" hidden onChange={handleUpload} />
+    <VStack spacing={4} mt={6}>
+      <input id="fileInput" type="file" hidden onChange={handleChangeFile} ref={fileInputRef} />
+      <Button colorScheme="blue" variant="outline" onClick={handleBrowse}>
+        Browse
+      </Button>
+      {selectedFile && (
+        <Flex alignItems="center" w="100%">
+          <Text fontSize="lg" color="grey" isTruncated>
+            You've selected the file <Text fontSize="lg" color="tomato" isTruncated>{selectedFile.name}</Text>
+          </Text>
+        </Flex>
+      )}
       <Button
-        as="label"
-        htmlFor="imageInput"
         colorScheme="blue"
-        variant="outline"
-        mb={4}
-        cursor="pointer"
+        variant="solid"
+        onClick={handleUpload}
         isLoading={uploading}
+        isDisabled={!selectedFile}
       >
         Upload
       </Button>
+
       {error && <ErrorText>{error}</ErrorText>}
       {uploadError && <ErrorText>{uploadError}</ErrorText>}
 
-      <Text textAlign="left" mb={4}>
-        Posts
-      </Text>
-      {imagesLoading && (
-        <CircularProgress
-          color="gray.600"
-          trackColor="blue.300"
-          size={7}
-          thickness={10}
-          isIndeterminate
-        />
-      )}
-      {fetchError && (
-        <ErrorText textAlign="left">Failed to load images</ErrorText>
-      )}
-      {!fetchError && imageUrls?.length === 0 && (
-        <Text textAlign="left" fontSize="lg" color="gray.500">
-          No images found
+      <Box w="100%">
+        <Text textAlign="left" mb={4}>
+          Files
         </Text>
-      )}
+        {filesLoading && (
+          <CircularProgress color="gray.600" trackColor="blue.300" isIndeterminate />
+        )}
+        {fetchError && <ErrorText>Failed to load files</ErrorText>}
+        {!fetchError && files?.length === 0 && (
+          <Text textAlign="left" fontSize="lg" color="gray.500">
+            No files found
+          </Text>
+        )}
 
-      <SimpleGrid columns={[1, 2, 3]} spacing={4}>
-        {imageUrls?.length > 0 &&
-          imageUrls.map(url => (
-            <Image borderRadius={5} src={url} alt="Image" key={url} />
-          ))}
-      </SimpleGrid>
-    </Box>
+        <SimpleGrid columns={[1, 2, 3]} spacing={4}>
+          {files?.length > 0 &&
+            files.map(({ fileName, presignedUrl }) => (
+              <Box key={fileName} p={2} shadow="md" borderWidth="1px">
+                <Link href={presignedUrl} isExternal download>
+                  {fileName}
+                </Link>
+              </Box>
+            ))}
+        </SimpleGrid>
+      </Box>
+    </VStack>
   );
 };
+
 export default Posts;

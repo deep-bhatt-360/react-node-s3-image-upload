@@ -18,24 +18,25 @@ app.use(
 );
 app.use(json());
 
-app.post("/images", upload.single("image"), (req, res) => {
+app.post("/files", upload.single("file"), (req, res) => {
   const { file } = req;
+  const fileName = file.originalname;
   const userId = req.headers["x-user-id"];
 
   if (!file || !userId) return res.status(400).json({ message: "Bad request" });
 
-  const { error, key } = uploadToS3({ file, userId });
+  const { error, key } = uploadToS3({ file, fileName });
   if (error) return res.status(500).json({ message: error.message });
 
   return res.status(201).json({ key });
 });
 
-app.get("/images", async (req, res) => {
+app.get("/files", async (req, res) => {
   const userId = req.headers["x-user-id"];
 
   if (!userId) return res.status(400).json({ message: "Bad request" });
 
-  const { error, presignedUrls } = await getUserPresignedUrls(userId);
+  const { error, presignedUrls } = await getUserPresignedUrls();
   if (error) return res.status(400).json({ message: error.message });
 
   return res.json(presignedUrls);
