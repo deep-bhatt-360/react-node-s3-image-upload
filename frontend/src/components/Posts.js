@@ -1,4 +1,4 @@
-import { Box, Button, CircularProgress, Flex, Link, SimpleGrid, Text, VStack } from '@chakra-ui/react';
+import { Box, Button, CircularProgress, Flex, Link, SimpleGrid, Text, VStack, Select } from '@chakra-ui/react';
 import { useState, useRef } from 'react';
 import useMutation from '../hooks/useMutation';
 import useQuery from '../hooks/useQuery';
@@ -65,6 +65,9 @@ const Posts = () => {
 
   return (
     <VStack spacing={4} mt={6}>
+      <Select placeholder='Select S3 Bucket'>
+        <option value='filesuploadpoc'>Files Upload POC</option>
+      </Select>      
       <input id="fileInput" type="file" hidden onChange={handleChangeFile} ref={fileInputRef} />
       <Button colorScheme="blue" variant="outline" onClick={handleBrowse}>
         Browse
