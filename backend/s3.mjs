@@ -7,7 +7,14 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuid } from "uuid";
 
-const s3 = new S3Client();
+const s3 = new S3Client(
+  {
+    credentials: {
+      accessKeyId: process.env.ACCESS_KEY_ID,
+      secretAccessKey: process.env.ACCESS_SECRET,
+    }
+  }
+);
 const BUCKET = process.env.BUCKET;
 
 export const uploadToS3 = async ({ file, userId }) => {
